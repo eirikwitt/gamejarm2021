@@ -281,7 +281,7 @@
 			"$objectFiles"
 		]
 	},
-	"target": "windows",
+	"target": "Pokitto",
 	"pipelines": {
 		"Pokitto": [
 			"img-to-c",
@@ -362,7 +362,22 @@
 		},
 		"\\README.md": {
 			"sdcard": false
+		},
+		"\\sprites.h": {
+			"sdcard": false
+		},
+		"\\sprites.cpp": {
+			"sdcard": false
+		},
+		"\\gamejarm2021.elf": {
+			"sdcard": false
+		},
+		"\\gamejarm2021.bin": {
+			"sdcard": false
 		}
 	},
-	"ideVersion": 10000
+	"ideVersion": 10000,
+	"BUILDFlags": {
+		"windows": {}
+	}
 }
