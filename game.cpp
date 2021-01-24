@@ -1,7 +1,9 @@
 #include <stdbool.h>
 
+extern "C" {
 #include "util.h"
 #include "trail.h"
+}
 #include "game.h"
 
 int ghost_getdamage(Ghost *self) {
