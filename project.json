@@ -389,6 +389,21 @@
 		},
 		"\\maps\\gardenPath.tmx.HmKuUS": {
 			"sdcard": false
+		},
+		"\\ghost.c": {
+			"sdcard": false
+		},
+		"\\ghost.h": {
+			"sdcard": false
+		},
+		"\\Makefile": {
+			"sdcard": false
+		},
+		"\\game.c": {
+			"sdcard": false
+		},
+		"\\game.h": {
+			"sdcard": false
 		}
 	},
 	"ideVersion": 10000,
