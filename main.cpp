@@ -29,10 +29,11 @@ typedef struct {
 	EntityState player;
 	Trail trail;
 	Sprite psprite;
-	Vec playersize
+	Vec playersize;
 	bool grounded;
 	int health;
 	Ghost *ghosts;
+	Vec chechpoints[10];
 } Game;
 
 typedef struct {
@@ -68,6 +69,10 @@ static Vec draw_upscale(Draw *self, Vec px) {
 
 Vec tile_from_pos(Draw *self, Vec pt){
     return vec_div(pt, self->tileSize);
+}
+
+Vec pos_from_tile(Draw *self, Vec tile){
+    return vec_mul(tile, self->tileSize);
 }
 
 static void draw_map(Draw *self, Player *player){
