@@ -38,6 +38,7 @@ typedef struct {
 	bool grounded;
 	int health;
 	Ghost *ghosts;
+	Sprite cpsprite;
 	Vec chechpoints[10];
 	int currentcp;
 } Game;
@@ -99,6 +100,16 @@ static void draw_player(Draw *self, Player *player){
     );
 	Vec tl = vec_add(game.player.pos, vec_neg(game.playersize));
     player->sprite.draw(tl.x / SUBPIXELS, tl.y / SUBPIXELS, false, false, 0);
+}
+
+static void draw_sprite(Sprite sprite, Vec pos, Vec size){
+    Vec screenPos = vec_add(
+        draw_downscale(self,
+            vec_add(pos, vec_neg(size))
+        ),
+        vec_neg(self->camPos)
+    );
+    sprite.draw(screenPos.x, screenPos.y, false, false, 0);
 }
 
 static void allign(Player *self, Draw *draw, Vec tileRelative, int x, int y){
@@ -250,7 +261,7 @@ void game_tickghosts(Game *self, int delta) {
 		)) self->health -= ghost_getdamage(ghost);
 
 		/* draw */
-		draw_ghost(self, pos);
+		draw_sprite(self->psprite, pos, self->playersize);
 
 		ghost = ghost->next;
 	}
@@ -258,12 +269,11 @@ void game_tickghosts(Game *self, int delta) {
 
 void game_tick_checkpoint(Game *self, int delta){
     if (game_does_player_overlap(self,
-			 vec_add(self->checkpoint.pos, vec_neg(self->player_size)),
-			 vec_add(self->checkpoint.pos, self->player_size)
+			 vec_add(self->checkpoints[self->currentcp], vec_neg(self->player_size)),
+			 vec_add(self->checkpoints[self->currentcp], self->player_size)
 		)){
         self->currentcp = self->currentcp+1 % 10;
-        self->checkpoint.pos = self->checkpoints[self->currentcp];
-        
+        draw_sprite(self->cpsprite, game->checkpoints[game->currentcp], {7*SUBPIXELS, 14*SUBPIXELS})
 	}
 }
 
