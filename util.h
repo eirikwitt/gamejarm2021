@@ -100,3 +100,7 @@ static inline Vec vec_mod(Vec a, Vec b) {
 static inline bool vec_isinside(Vec v, Vec tl, Vec br) {
 	return v.x >= tl.x && v.x <= br.x && v.y >= tl.y && v.y <= br.y;
 }
+
+static inline long vec_grad(Vec a){
+    return (((long) a.y)<<16)/((((long) a.x)<<16)+1);
+}

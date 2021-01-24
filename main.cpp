@@ -70,8 +70,7 @@ static void draw_player(Draw *self, Player *player){
 }
 
 
-static void allign(Player *self, Draw *draw, int x, int y){
-    Vec tileRelative = vec_mod(vec_add(self->pos, self->offset), draw->tileSize);
+static void allign(Player *self, Draw *draw, Vec tileRelative, int x, int y){
     switch (x) {
         case 1:
             self->pos.x += draw->tileSize.x - tileRelative.x;
@@ -96,6 +95,7 @@ static void allign(Player *self, Draw *draw, int x, int y){
 
 static void correct_collision(Player *self, Draw *draw){
     int collisions = 0;
+    Vec tileRelative = vec_mod(vec_add(self->pos, self->offset), draw->tileSize);
     for(int i = 0; i < lenof(corners); i++){
         Vec pt = vec_add(vec_mul(corners[i], vec_scale(self->size, 1, 2)), self->pos);
         Vec tile = tile_from_pos(draw, pt);
@@ -104,38 +104,79 @@ static void correct_collision(Player *self, Draw *draw){
             collisions += 1<<i;
         }
     }
+    Vec cornerVec;
     switch (collisions) {
-        case 1:
+        case 0b0001:
+            cornerVec = vec_add(tileRelative, vec_neg(draw->tileSize));
+            if(self->speed.x >= 0){
+                allign(self, draw, tileRelative, 0, 1);
+            }else if(self->speed.y >= 0) {
+                allign(self, draw, tileRelative, 1, 0);
+            }else if(vec_grad(self->speed) > vec_grad(cornerVec)) {
+                allign(self, draw, tileRelative, 0, 1);
+            }else {
+                allign(self, draw, tileRelative, 1, 0);
+            }
             break;
-        case 2:
+        case 0b0010:
+            cornerVec = vec_add(tileRelative, {0, -draw->tileSize.y});
+            if(self->speed.x <= 0){
+                allign(self, draw, tileRelative, 0, 1);
+            }else if(self->speed.y >= 0) {
+                allign(self, draw, tileRelative, -1, 0);
+            }else if(vec_grad(self->speed) > vec_grad(cornerVec)) {
+                allign(self, draw, tileRelative, -1, 0);
+            }else {
+                allign(self, draw, tileRelative, 0, 1);
+            }
             break;
-        case 4:
+        case 0b0100:
+            cornerVec = tileRelative;
+            if(self->speed.x <= 0){
+                allign(self, draw, tileRelative, 0, -1);
+            }else if(self->speed.y <= 0) {
+                allign(self, draw, tileRelative, -1, 0);
+            }else if(vec_grad(self->speed) < vec_grad(cornerVec)) {
+                allign(self, draw, tileRelative, -1, 0);
+            }else {
+                allign(self, draw, tileRelative, 0, -1);
+            }
             break;
-        case 8:
+        case 0b1000:
+            cornerVec = vec_add(tileRelative, {0, -draw->tileSize.x});
+            if(self->speed.x >= 0){
+                allign(self, draw, tileRelative, 0, -1);
+            }else if(self->speed.y <= 0) {
+                allign(self, draw, tileRelative, 1, 0);
+            }else if(vec_grad(self->speed) > vec_grad(cornerVec)) {
+                allign(self, draw, tileRelative, 0, -1);
+            }else {
+                allign(self, draw, tileRelative, 1, 0);
+            }
             break;
         case 0b0011:
-            allign(self, draw, 0, 1);
+            allign(self, draw, tileRelative, 0, 1);
             break;
         case 0b0110:
-        allign(self, draw, -1, 0);
+        allign(self, draw, tileRelative, -1, 0);
             break;
         case 0b1100:
-        allign(self, draw, 0, -1);
+        allign(self, draw, tileRelative, 0, -1);
             break;
         case 0b1001:
-            allign(self, draw, 1, 0);
+            allign(self, draw, tileRelative, 1, 0);
             break;
         case 0b0111:
-            allign(self, draw, -1, 1);
+            allign(self, draw, tileRelative, -1, 1);
             break;
         case 0b1110:
-            allign(self, draw, -1, -1);
+            allign(self, draw, tileRelative, -1, -1);
             break;
         case 0b1101:
-            allign(self, draw, 1, -1);
+            allign(self, draw, tileRelative, 1, -1);
             break;
         case 0b1011:
-            allign(self, draw, 1, 1);
+            allign(self, draw, tileRelative, 1, 1);
             break;
     }
 }
@@ -180,7 +221,7 @@ int main(){
 
     
     //int cameraX = 64, cameraY = 64, speed = 3, recolor = 0;
-    int pX = 64, pY = 64, gravity = 2, xImpulse = 50, yImpulse = -50;
+    int pX = 64, pY = 64, gravity = 5, xImpulse = 150, yImpulse = -250;
     
     
     
@@ -199,10 +240,10 @@ int main(){
         }
         if(PB::aBtn()&&player.onGround){
             player.speed.y = yImpulse;
-            player.onGround = false;
         }
         
         player.speed.y += gravity;
+        player.onGround = false;
         
         
         player.pos = vec_add(player.pos, player.speed);
