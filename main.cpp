@@ -253,15 +253,37 @@ void game_tickghosts(Game *self, int delta) {
 	}
 }
 
-void game_
+void game_captureframe(Game *self) {
+	Keyframe *frame = trail_add(self->trail);
+	*frame = (Keyframe){
+		.state = self->player;
+		.t = self->t;
+		.acc = self->acc;
+	}
+}
 
 void game_tick(Game *self, int delta) {
-	Vec acc = vec_zero, impulse = vec_zero;
+	bool dirty = false;
+	int32_t velx = 0;
+	Vel acc = {0, gravity};
 
-	if (PB::rightBtn()) impulse += self->btnimpulse.x;
-	if (PB::leftBtn()) impulse -= self->btnimpulse.x;
-	if (PB::aBtn() && !self->player.vel.y) impulse = self->impulse.y;
-	
+	self->t += delta;
+	if (PB::rightBtn()) velx += self->impulse.x;
+	if (PB::leftBtn()) velx -= self->impulse.x;
+	if (PB::aBtn()) {
+		if (!self->player.vel.y) {
+			self->player.vel.y = -self->impulse.y;
+			dirty = true;
+		}
+		acc.y += -gravity / 2;
+	}
+	if (velx != self->player.vel.x) dirty = true;
+	if (acc != self->acc) dirty = true;
+	self->acc = acc;
+	if (dirty) game_captureframe(self);
+	self->player.vel = vec_add(self->player.vel, vec_scale(self->acc, delta, 1));
+	self->player.pos = vec_add(self->player.pos, vec_scale(self->player.vel, delta, 1));
+	game_tickghosts(self, delta);
 }
 
 int main(){
