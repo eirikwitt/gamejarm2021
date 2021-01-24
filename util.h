@@ -77,3 +77,16 @@ static inline Vec vec_min(Vec a, Vec b) {
 static inline Vec vec_max(Vec a, Vec b) {
 	return (Vec){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y};
 }
+
+static inline Vec vec_mul(Vec a, Vec b){
+    return (Vec){a.x * b.x, a.y * b.y};
+}
+
+static inline Vec vec_div(Vec a, Vec b){
+    return (Vec){a.x / b.x, a.y / b.y};
+}
+
+static inline Vec vec_mod(Vec a, Vec b){
+    return (Vec){a.x % b.x, a.y % b.y};
+}
+
