@@ -1,14 +1,21 @@
 typedef struct {
 	EntityState state;
-	KeyframeIter trail;
+	Trail trail;
 } Player;
 
-typedef struct {
-	EntityState state;
-	KeyframeIter trail;
+typedef struct Ghost Ghost;
+struct Ghost {
+	Trail trail;
 	signed t;
 	Ghost *next;
-} Ghost;
+};
+
+typedef struct {
+	Player player;
+	Ghost *ghosts;
+	Vec player_size;
+	int health;
+} Game;
 
 int ghost_getdamage(Ghost *self);
 void game_tickghosts(Game *self, int delta);

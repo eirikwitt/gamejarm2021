@@ -1,3 +1,6 @@
+#include <stdbool.h>
+
+#include "util.h"
 #include "trail.h"
 #include "game.h"
 
@@ -6,7 +9,16 @@ int ghost_getdamage(Ghost *self) {
 	return self->t >= 0 && self->next;
 }
 
-void game_tickghosts(Game *self, int delta)) {
+bool game_does_player_overlap(Game *self, Vec tl, Vec br) {
+	Vec ptl = vec_add(self->player.state.pos, self->player_size);
+	Vec pbr = vec_add(self->player.state.pos, vec_neg(self->player_size));
+	return (
+		vec_isinside(ptl, tl, br) || vec_isinside(pbr, tl, br) ||
+		vec_isinside(tl, ptl, pbr) || vec_isinside(br, ptl, pbr)
+	);
+}
+
+void game_tickghosts(Game *self, int delta) {
 	Ghost *ghost = self->ghosts;
 	while (ghost) {
 		Keyframe *kf;
@@ -16,7 +28,7 @@ void game_tickghosts(Game *self, int delta)) {
 		/* calculate position */
 		delta *= -1;
 		ghost->t += delta;
-		kf = keyframe_find(ghost->trail, ghost->t);
+		kf = trail_find(&ghost->trail, ghost->t);
 		t = ghost->t - kf->t;
 		//TODO: vec_scale overflow
 		pos = kf->state.pos;
@@ -24,9 +36,9 @@ void game_tickghosts(Game *self, int delta)) {
 		pos = vec_add(pos, vec_scale(kf->acc, t * t, 2));
 
 		/* detect collision with player */
-		if (game_is_player_inside(self,
-			 vec_add(pos, game->player_size),
-			 vec_add(pos, vec_neg(game->player_size))
+		if (game_does_player_overlap(self,
+			 vec_add(pos, self->player_size),
+			 vec_add(pos, vec_neg(self->player_size))
 		)) self->health -= ghost_getdamage(ghost);
 
 		/* draw */

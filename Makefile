@@ -80,11 +80,14 @@ all: gamejarm2021.bin
 .elf.bin:
 	$(OBJCOPY) -O binary $< $@
 
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
 .SUFFIXES: .elf .bin
 
 gamejarm2021.elf: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS)
 
 main.o: maps.h sprites.h Smile.h
-game.o: game.h trail.h
-trail.o: trail.h
+game.o: game.h trail.h util.h
+trail.o: trail.h util.h
