@@ -221,7 +221,7 @@ int main(){
 
     
     //int cameraX = 64, cameraY = 64, speed = 3, recolor = 0;
-    int pX = 64, pY = 64, gravity = 5, xImpulse = 150, yImpulse = -250;
+    int pX = 64, pY = 64, gravity = 10, xImpulse = 150, yImpulse = -300;
     
     
     

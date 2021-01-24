@@ -410,6 +410,18 @@
 		},
 		"\\trail.h": {
 			"sdcard": false
+		},
+		"\\maps\\gardenPath.tmx.eejUcn": {
+			"sdcard": false
+		},
+		"\\maps\\gardenPath.tmx.JpuZYi": {
+			"sdcard": false
+		},
+		"\\maps\\gardenPath.tmx.HBaLXP": {
+			"sdcard": false
+		},
+		"\\gamejarm2021.eeprom": {
+			"sdcard": false
 		}
 	},
 	"ideVersion": 10000,
