@@ -422,6 +422,21 @@
 		},
 		"\\gamejarm2021.eeprom": {
 			"sdcard": false
+		},
+		"\\game.cpp": {
+			"sdcard": false
+		},
+		"\\sprites\\Dude - Copy.json": {
+			"sdcard": false
+		},
+		"\\sprites\\Dude - Copy.png": {
+			"sdcard": false
+		},
+		"\\sprites\\Checkpoint.json": {
+			"sdcard": false
+		},
+		"\\sprites\\Checkpoint.png": {
+			"sdcard": false
 		}
 	},
 	"ideVersion": 10000,
