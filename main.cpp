@@ -34,12 +34,13 @@ typedef struct {
 	Vec playersize;
 	Vec acc;
 	Vec impulse;
-	Vec btnimpulse;
+	Vec gravity;
 	bool grounded;
 	int health;
 	Ghost *ghosts;
 	Vec chechpoints[10];
 	int currentcp;
+	Draw draw;
 } Game;
 
 typedef struct {
@@ -101,7 +102,7 @@ static void draw_player(Draw *self, Player *player){
     player->sprite.draw(tl.x / SUBPIXELS, tl.y / SUBPIXELS, false, false, 0);
 }
 
-static void allign(Player *self, Draw *draw, Vec tileRelative, int x, int y){
+static void allign(PlayerState *self, Draw *draw, Vec tileRelative, int x, int y){
     switch (x) {
         case 1:
             self->pos.x += draw->tileSize.x - tileRelative.x;
@@ -113,17 +114,17 @@ static void allign(Player *self, Draw *draw, Vec tileRelative, int x, int y){
     switch (y) {
         case 1:
             self->pos.y += draw->tileSize.y - tileRelative.y;
-            self->speed.y = 0;
+            self->vel.y = 0;
             break;
         case -1:
             self->grounded = true;
-            self->pos.y -=tileRelative.y-(1<<(draw->subheight));
-            self->speed.y = 0;
+            self->pos.y -= tileRelative.y-(1<<(draw->subheight));
+            self->vel.y = 0;
             break;
     }
 }
 
-static void correct_collision(Player *self, Draw *draw){
+static void correct_collision(PlayerState *self, Draw *draw){
     static const Vec corners[] = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
 	int collisions = 0;
     Vec tileRelative = vec_mod(vec_add(self->pos, self->offset), draw->tileSize);
@@ -139,11 +140,11 @@ static void correct_collision(Player *self, Draw *draw){
     switch (collisions) {
         case 0b0001:
             cornerVec = vec_add(tileRelative, vec_neg(draw->tileSize));
-            if(self->speed.x >= 0){
+            if(self->vel.x >= 0){
                 allign(self, draw, tileRelative, 0, 1);
-            }else if(self->speed.y >= 0) {
+            }else if(self->vel.y >= 0) {
                 allign(self, draw, tileRelative, 1, 0);
-            }else if(vec_grad(self->speed) > vec_grad(cornerVec)) {
+            }else if(vec_grad(self->vel) > vec_grad(cornerVec)) {
                 allign(self, draw, tileRelative, 0, 1);
             }else {
                 allign(self, draw, tileRelative, 1, 0);
@@ -151,11 +152,11 @@ static void correct_collision(Player *self, Draw *draw){
             break;
         case 0b0010:
             cornerVec = vec_add(tileRelative, {0, -draw->tileSize.y});
-            if(self->speed.x <= 0){
+            if(self->vel.x <= 0){
                 allign(self, draw, tileRelative, 0, 1);
-            }else if(self->speed.y >= 0) {
+            }else if(self->vel.y >= 0) {
                 allign(self, draw, tileRelative, -1, 0);
-            }else if(vec_grad(self->speed) > vec_grad(cornerVec)) {
+            }else if(vec_grad(self->vel) > vec_grad(cornerVec)) {
                 allign(self, draw, tileRelative, -1, 0);
             }else {
                 allign(self, draw, tileRelative, 0, 1);
@@ -163,11 +164,11 @@ static void correct_collision(Player *self, Draw *draw){
             break;
         case 0b0100:
             cornerVec = tileRelative;
-            if(self->speed.x <= 0){
+            if(self->vel.x <= 0){
                 allign(self, draw, tileRelative, 0, -1);
-            }else if(self->speed.y <= 0) {
+            }else if(self->vel.y <= 0) {
                 allign(self, draw, tileRelative, -1, 0);
-            }else if(vec_grad(self->speed) < vec_grad(cornerVec)) {
+            }else if(vec_grad(self->vel) < vec_grad(cornerVec)) {
                 allign(self, draw, tileRelative, -1, 0);
             }else {
                 allign(self, draw, tileRelative, 0, -1);
@@ -175,11 +176,11 @@ static void correct_collision(Player *self, Draw *draw){
             break;
         case 0b1000:
             cornerVec = vec_add(tileRelative, {0, -draw->tileSize.x});
-            if(self->speed.x >= 0){
+            if(self->vel.x >= 0){
                 allign(self, draw, tileRelative, 0, -1);
-            }else if(self->speed.y <= 0) {
+            }else if(self->vel.y <= 0) {
                 allign(self, draw, tileRelative, 1, 0);
-            }else if(vec_grad(self->speed) > vec_grad(cornerVec)) {
+            }else if(vec_grad(self->vel) > vec_grad(cornerVec)) {
                 allign(self, draw, tileRelative, 0, -1);
             }else {
                 allign(self, draw, tileRelative, 1, 0);
@@ -268,11 +269,10 @@ void game_tick_checkpoint(Game *self, int delta){
 }
 
 void game_captureframe(Game *self) {
-	Keyframe *frame = trail_add(self->trail);
-	*frame = (Keyframe){
-		.state = self->player;
-		.t = self->t;
-		.acc = self->acc;
+	*trail_add(self->trail) = (Keyframe){
+		.state = self->player,
+		.t = self->t,
+		.acc = self->acc
 	}
 }
 
@@ -285,7 +285,7 @@ void game_tick(Game *self, int delta) {
 	if (PB::rightBtn()) velx += self->impulse.x;
 	if (PB::leftBtn()) velx -= self->impulse.x;
 	if (PB::aBtn()) {
-		if (!self->player.vel.y) {
+		if (self->grounded) {
 			self->player.vel.y = -self->impulse.y;
 			dirty = true;
 		}
@@ -297,6 +297,9 @@ void game_tick(Game *self, int delta) {
 	if (dirty) game_captureframe(self);
 	self->player.vel = vec_add(self->player.vel, vec_scale(self->acc, delta, 1));
 	self->player.pos = vec_add(self->player.pos, vec_scale(self->player.vel, delta, 1));
+    correct_collision(&self->player, &self->draw);
+    draw_map(&self->draw, &self->player);
+    draw_player(&self->draw, &self->player);
 	game_tickghosts(self, delta);
 }
 
@@ -308,76 +311,58 @@ int main(){
     PC::begin();
     PD::loadRGBPalette(miloslav);
 
-    //Loads tilemap
-    Draw draw = {
-        .subwidth = 16,
-        .subheight = 16,
-        .tileSize = draw_upscale(&draw, (Vec){PROJ_TILE_W, PROJ_TILE_H}),
-        .mapSize = (Vec){gardenPath[0], gardenPath[1]},
-        .lcdSize = (Vec){LCDWIDTH, LCDHEIGHT},
-        .camOffset = vec_scale(draw.lcdSize, -1, 2),
-        .camMax = vec_add(vec_mul(draw.mapSize, (Vec){PROJ_TILE_W, PROJ_TILE_H}), vec_neg(draw.lcdSize)),
-        .camMin = vec_zero
-    };
+	Game game = {
+		.player = {
+			.pos = {START_X, START_Y}
+		},
+		.playersize = {
+			game.player.sprite.getFrameWidth() * (SUBPIXELS / 2),
+			game.player.sprite.getFrameHeight() * (SUBPIXELS / 2)
+		},
+		.impulse = {38400, 76800},
+		.gravity = {0, 2560},
+		.health = 1,
+		.checkpoints = {
+		    pos_from_tile(draw, {24, 28}),
+		    pos_from_tile(draw, {18, 21}),
+		    pos_from_tile(draw, {11, 21}),
+		    pos_from_tile(draw, {2, 21}),
+		    pos_from_tile(draw, {8, 17}),
+		    pos_from_tile(draw, {7, 24}),
+		    pos_from_tile(draw, {27, 21}),
+		    pos_from_tile(draw, {2, 28}),
+		    pos_from_tile(draw, {1, 14}),
+		    pos_from_tile(draw, {24, 17})
+		},
+		.draw = {
+	        .subwidth = 16,
+	        .subheight = 16,
+	        .tileSize = draw_upscale(&draw, (Vec){PROJ_TILE_W, PROJ_TILE_H}),
+	        .mapSize = (Vec){gardenPath[0], gardenPath[1]},
+	        .lcdSize = (Vec){LCDWIDTH, LCDHEIGHT},
+	        .camOffset = vec_scale(draw.lcdSize, -1, 2),
+	        .camMax = vec_add(vec_mul(draw.mapSize, (Vec){PROJ_TILE_W, PROJ_TILE_H}), vec_neg(draw.lcdSize)),
+	        .camMin = vec_zero
+    	}
+	};
 
+	*trail_add(&game.trail) = {};
     draw.tilemap.set(gardenPath[0], gardenPath[1], gardenPath+2);
     for(int i=0; i<sizeof(tiles)/(POK_TILE_W*POK_TILE_H); i++)
         draw.tilemap.setTile(i, POK_TILE_W, POK_TILE_H, tiles+i*POK_TILE_W*POK_TILE_H);
 
-    Player player = {
-        .state.pos = {START_X, START_Y}
-    };
-    
     game.checkpoint.sprite.play(checkpoint, Checkpoint::base);
     game.player.sprite.play(dude, Dude::yay);
-    game.player_size = (Vec){
-		game.player.sprite.getFrameWidth() * (SUBPIXELS / 2),
-		game.player.sprite.getFrameHeight() * (SUBPIXELS / 2)
-	};
-    game.player.offset = vec_scale(player.size, -1, 2);
 
-    //int cameraX = 64, cameraY = 64, speed = 3, recolor = 0;
-    int gravity = 2560, xImpulse = 38400, yImpulse = -76800;
+	time_t time = PC::getTime();
 
-    while( PC::isRunning() ){
-        if( !PC::update() )
+    while(PC::isRunning()){
+        if(!PC::update())
             continue;
-
-        player.state.vel.x = 0;
-
-        if(PB::rightBtn()){
-            player.state.vel.x += xImpulse;
-        }
-        if(PB::leftBtn()){
-            player.state.vel.x -= xImpulse;
-        }
-        if(PB::aBtn()&&player.grounded){
-            player.state.vel.y = yImpulse;
-        }
-
-        player.state.vel.y += gravity;
-        player.grounded = false;
-
-        player.state.pos = vec_add(player.state.pos, player.state.vel);
-        correct_collision(&player, &draw);
-        draw_map(&draw, &player);
-        draw_player(&draw, &player);
+		time_t new_time = PC::getTime();
+		game_tick(&game, new_time - time);
+		time = new_time;
     }
 
     return 0;
 }
-
-/* Add to game init
-Vec checkpoints[] = {
-    pos_from_tile(draw, {24, 28})
-    pos_from_tile(draw, {18, 21})
-    pos_from_tile(draw, {11, 21})
-    pos_from_tile(draw, {2, 21})
-    pos_from_tile(draw, {8, 17})
-    pos_from_tile(draw, {7, 24})
-    pos_from_tile(draw, {27, 21})
-    pos_from_tile(draw, {2, 28})
-    pos_from_tile(draw, {1, 14})
-    pos_from_tile(draw, {24, 17})
-}
-*/
