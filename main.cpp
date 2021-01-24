@@ -25,6 +25,8 @@ struct Ghost {
 	Ghost *next;
 };
 
+
+
 typedef struct {
 	EntityState player;
 	Trail trail;
@@ -37,6 +39,7 @@ typedef struct {
 	int health;
 	Ghost *ghosts;
 	Vec chechpoints[10];
+	int currentcp;
 } Game;
 
 typedef struct {
@@ -242,14 +245,25 @@ void game_tickghosts(Game *self, int delta) {
 
 		/* detect collision with player */
 		if (game_does_player_overlap(self,
-			 vec_add(pos, self->player_size),
-			 vec_add(pos, vec_neg(self->player_size))
+			 vec_add(pos, vec_neg(self->player_size)),
+			 vec_add(pos, self->player_size)
 		)) self->health -= ghost_getdamage(ghost);
 
 		/* draw */
 		draw_ghost(self, pos);
 
 		ghost = ghost->next;
+	}
+}
+
+void game_tick_checkpoint(Game *self, int delta){
+    if (game_does_player_overlap(self,
+			 vec_add(self->checkpoint.pos, vec_neg(self->player_size)),
+			 vec_add(self->checkpoint.pos, self->player_size)
+		)){
+        self->currentcp = self->currentcp+1 % 10;
+        self->checkpoint.pos = self->checkpoints[self->currentcp];
+        
 	}
 }
 
@@ -291,7 +305,8 @@ int main(){
     Player player = {
         .state.pos = {START_X, START_Y}
     };
-
+    
+    game.checkpoint.sprite.play(checkpoint, Checkpoint::base);
     game.player.sprite.play(dude, Dude::yay);
     game.player_size = (Vec){
 		game.player.sprite.getFrameWidth() * (SUBPIXELS / 2),
@@ -329,3 +344,18 @@ int main(){
 
     return 0;
 }
+
+/* Add to game init
+Vec checkpoints[] = {
+    pos_from_tile(draw, {24, 28})
+    pos_from_tile(draw, {18, 21})
+    pos_from_tile(draw, {11, 21})
+    pos_from_tile(draw, {2, 21})
+    pos_from_tile(draw, {8, 17})
+    pos_from_tile(draw, {7, 24})
+    pos_from_tile(draw, {27, 21})
+    pos_from_tile(draw, {2, 28})
+    pos_from_tile(draw, {1, 14})
+    pos_from_tile(draw, {24, 17})
+}
+*/
