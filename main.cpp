@@ -5,18 +5,43 @@
 #include "sprites.h"
 #include "Smile.h"
 #include "maps.h"
+
+extern "C" {
 #include "util.h"
+#include "trail.h"
+}
 
 #define START_X 5640
 #define START_Y 5640
 
+enum {
+	SUBPIXELS = 1<<16
+};
+
+typedef struct Ghost Ghost;
+struct Ghost {
+	Trail trail;
+	signed t;
+	Ghost *next;
+};
+
 typedef struct {
+	EntityState player;
+	Trail trail;
+	Sprite psprite;
+	Vec playersize
+	bool grounded;
+	int health;
+	Ghost *ghosts;
+} Game;
+
+typedef struct {
+	EntityState state;
+	Trail trail;
     Sprite sprite;
     Vec size; //subpixels
     Vec offset; //subpixels
-    Vec speed;
-    Vec pos; //subpixels
-    bool onGround;
+    bool grounded;
 } Player;
 
 typedef struct {
@@ -61,7 +86,8 @@ static void draw_player(Draw *self, Player *player){
         ),
         vec_neg(self->camPos)
     );
-    player->sprite.draw(screenPos.x, screenPos.y, false, false, 0);
+	Vec tl = vec_add(game.player.pos, vec_neg(game.playersize));
+    player->sprite.draw(tl.x / SUBPIXELS, tl.y / SUBPIXELS, false, false, 0);
 }
 
 static void allign(Player *self, Draw *draw, Vec tileRelative, int x, int y){
@@ -79,13 +105,12 @@ static void allign(Player *self, Draw *draw, Vec tileRelative, int x, int y){
             self->speed.y = 0;
             break;
         case -1:
-            self->onGround = true;
+            self->grounded = true;
             self->pos.y -=tileRelative.y-(1<<(draw->subheight));
             self->speed.y = 0;
             break;
     }
 }
-
 
 static void correct_collision(Player *self, Draw *draw){
     static const Vec corners[] = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
@@ -176,6 +201,50 @@ static void correct_collision(Player *self, Draw *draw){
     }
 }
 
+int ghost_getdamage(Ghost *self) {
+	/* despawned ghosts and the most recently spawned ghost deal no damage */
+	return self->t >= 0 && self->next;
+}
+
+bool game_does_player_overlap(Game *self, Vec tl, Vec br) {
+	Vec ptl = vec_add(self->player.state.pos, self->player_size);
+	Vec pbr = vec_add(self->player.state.pos, vec_neg(self->player_size));
+	return (
+		vec_isinside(ptl, tl, br) || vec_isinside(pbr, tl, br) ||
+		vec_isinside(tl, ptl, pbr) || vec_isinside(br, ptl, pbr)
+	);
+}
+
+void game_tickghosts(Game *self, int delta) {
+	Ghost *ghost = self->ghosts;
+	while (ghost) {
+		Keyframe *kf;
+		int t;
+		Vec pos;
+
+		/* calculate position */
+		delta *= -1;
+		ghost->t += delta;
+		kf = trail_find(&ghost->trail, ghost->t);
+		t = ghost->t - kf->t;
+		//TODO: vec_scale overflow
+		pos = kf->state.state.pos;
+		pos = vec_add(pos, vec_scale(kf->state.vel, t, 1));
+		pos = vec_add(pos, vec_scale(kf->acc, t * t, 2));
+
+		/* detect collision with player */
+		if (game_does_player_overlap(self,
+			 vec_add(pos, self->player_size),
+			 vec_add(pos, vec_neg(self->player_size))
+		)) self->health -= ghost_getdamage(ghost);
+
+		/* draw */
+		//TODO
+
+		ghost = ghost->next;
+	}
+}
+
 int main(){
     using PC=Pokitto::Core;
     using PD=Pokitto::Display;
@@ -185,7 +254,6 @@ int main(){
     PD::loadRGBPalette(miloslav);
 
     //Loads tilemap
-
     Draw draw = {
         .subwidth = 16,
         .subheight = 16,
@@ -202,12 +270,15 @@ int main(){
         draw.tilemap.setTile(i, POK_TILE_W, POK_TILE_H, tiles+i*POK_TILE_W*POK_TILE_H);
 
     Player player = {
-        .pos = {START_X, START_Y}
+        .state.pos = {START_X, START_Y}
     };
 
-    player.sprite.play(dude, Dude::yay);
-    player.size = draw_upscale(&draw, {player.sprite.getFrameWidth(), player.sprite.getFrameHeight()});
-    player.offset = vec_scale(player.size, -1, 2);
+    game.player.sprite.play(dude, Dude::yay);
+    game.player_size = (Vec){
+		game.player.sprite.getFrameWidth() * (SUBPIXELS / 2),
+		game.player.sprite.getFrameHeight() * (SUBPIXELS / 2)
+	};
+    game.player.offset = vec_scale(player.size, -1, 2);
 
     //int cameraX = 64, cameraY = 64, speed = 3, recolor = 0;
     int gravity = 2560, xImpulse = 38400, yImpulse = -76800;
@@ -216,22 +287,22 @@ int main(){
         if( !PC::update() )
             continue;
 
-        player.speed.x = 0;
+        player.state.vel.x = 0;
 
         if(PB::rightBtn()){
-            player.speed.x += xImpulse;
+            player.state.vel.x += xImpulse;
         }
         if(PB::leftBtn()){
-            player.speed.x -= xImpulse;
+            player.state.vel.x -= xImpulse;
         }
-        if(PB::aBtn()&&player.onGround){
-            player.speed.y = yImpulse;
+        if(PB::aBtn()&&player.grounded){
+            player.state.vel.y = yImpulse;
         }
 
-        player.speed.y += gravity;
-        player.onGround = false;
+        player.state.vel.y += gravity;
+        player.grounded = false;
 
-        player.pos = vec_add(player.pos, player.speed);
+        player.state.pos = vec_add(player.state.pos, player.state.vel);
         correct_collision(&player, &draw);
         draw_map(&draw, &player);
         draw_player(&draw, &player);
