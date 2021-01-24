@@ -386,6 +386,9 @@
 		},
 		"\\util.h": {
 			"sdcard": false
+		},
+		"\\maps\\gardenPath.tmx.HmKuUS": {
+			"sdcard": false
 		}
 	},
 	"ideVersion": 10000,
