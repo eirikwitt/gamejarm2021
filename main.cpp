@@ -19,8 +19,6 @@ typedef struct {
     bool onGround;
 } Player;
 
-static const Vec corners[] = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
-
 typedef struct {
 	unsigned char subwidth, subheight; /* log2(subpixels per pixel) */
 	Vec tileSize; //subpixels
@@ -43,32 +41,28 @@ static Vec draw_upscale(Draw *self, Vec px) {
 	return (Vec){px.x << self->subwidth, px.y << self->subheight};
 }
 
-
-
 Vec tile_from_pos(Draw *self, Vec pt){
     return vec_div(pt, self->tileSize);
 }
 
-
-
 static void draw_map(Draw *self, Player *player){
     self->camPos = vec_max(
         vec_min(
-            vec_add(draw_downscale(self, player->pos), self->camOffset), 
-            self->camMax), 
+            vec_add(draw_downscale(self, player->pos), self->camOffset),
+            self->camMax),
         self->camMin);
     self->tilemap.draw(-self->camPos.x, -self->camPos.y);
 }
 
 static void draw_player(Draw *self, Player *player){
-    volatile Vec screenPos = vec_add(
-            draw_downscale(self,
-                vec_add(player->pos, player->offset)
-            ), 
-            vec_neg(self->camPos));
+    Vec screenPos = vec_add(
+        draw_downscale(self,
+            vec_add(player->pos, player->offset)
+        ),
+        vec_neg(self->camPos)
+    );
     player->sprite.draw(screenPos.x, screenPos.y, false, false, 0);
 }
-
 
 static void allign(Player *self, Draw *draw, Vec tileRelative, int x, int y){
     switch (x) {
@@ -94,7 +88,8 @@ static void allign(Player *self, Draw *draw, Vec tileRelative, int x, int y){
 
 
 static void correct_collision(Player *self, Draw *draw){
-    int collisions = 0;
+    static const Vec corners[] = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
+	int collisions = 0;
     Vec tileRelative = vec_mod(vec_add(self->pos, self->offset), draw->tileSize);
     for(int i = 0; i < lenof(corners); i++){
         Vec pt = vec_add(vec_mul(corners[i], vec_scale(self->size, 1, 2)), self->pos);
@@ -181,22 +176,19 @@ static void correct_collision(Player *self, Draw *draw){
     }
 }
 
-
-
-
 int main(){
     using PC=Pokitto::Core;
     using PD=Pokitto::Display;
     using PB=Pokitto::Buttons;
-    
+
     PC::begin();
     PD::loadRGBPalette(miloslav);
-    
+
     //Loads tilemap
-        
+
     Draw draw = {
-        .subwidth = 6,
-        .subheight = 6,
+        .subwidth = 16,
+        .subheight = 16,
         .tileSize = draw_upscale(&draw, (Vec){PROJ_TILE_W, PROJ_TILE_H}),
         .mapSize = (Vec){gardenPath[0], gardenPath[1]},
         .lcdSize = (Vec){LCDWIDTH, LCDHEIGHT},
@@ -204,32 +196,26 @@ int main(){
         .camMax = vec_add(vec_mul(draw.mapSize, (Vec){PROJ_TILE_W, PROJ_TILE_H}), vec_neg(draw.lcdSize)),
         .camMin = vec_zero
     };
-    
+
     draw.tilemap.set(gardenPath[0], gardenPath[1], gardenPath+2);
     for(int i=0; i<sizeof(tiles)/(POK_TILE_W*POK_TILE_H); i++)
         draw.tilemap.setTile(i, POK_TILE_W, POK_TILE_H, tiles+i*POK_TILE_W*POK_TILE_H);
-        
+
     Player player = {
         .pos = {START_X, START_Y}
     };
-    
+
     player.sprite.play(dude, Dude::yay);
     player.size = draw_upscale(&draw, {player.sprite.getFrameWidth(), player.sprite.getFrameHeight()});
     player.offset = vec_scale(player.size, -1, 2);
-    
-    
 
-    
     //int cameraX = 64, cameraY = 64, speed = 3, recolor = 0;
-    int pX = 64, pY = 64, gravity = 10, xImpulse = 150, yImpulse = -300;
-    
-    
-    
-    
+    int gravity = 2560, xImpulse = 38400, yImpulse = -76800;
+
     while( PC::isRunning() ){
-        if( !PC::update() ) 
+        if( !PC::update() )
             continue;
-        
+
         player.speed.x = 0;
 
         if(PB::rightBtn()){
@@ -241,16 +227,15 @@ int main(){
         if(PB::aBtn()&&player.onGround){
             player.speed.y = yImpulse;
         }
-        
+
         player.speed.y += gravity;
         player.onGround = false;
-        
-        
+
         player.pos = vec_add(player.pos, player.speed);
         correct_collision(&player, &draw);
         draw_map(&draw, &player);
         draw_player(&draw, &player);
     }
-    
+
     return 0;
 }
