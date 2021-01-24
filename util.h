@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -78,15 +79,21 @@ static inline Vec vec_max(Vec a, Vec b) {
 	return (Vec){a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y};
 }
 
-static inline Vec vec_mul(Vec a, Vec b){
+static inline Vec vec_mul(Vec a, Vec b) {
     return (Vec){a.x * b.x, a.y * b.y};
 }
 
-static inline Vec vec_div(Vec a, Vec b){
+static inline Vec vec_div(Vec a, Vec b) {
     return (Vec){a.x / b.x, a.y / b.y};
 }
 
-static inline Vec vec_mod(Vec a, Vec b){
+static inline Vec vec_mod(Vec a, Vec b) {
     return (Vec){a.x % b.x, a.y % b.y};
 }
 
+/* returns true if vector v is inside the rectangle with tl and br as top-left
+ * and bottom-right corners
+ */
+static inline bool vec_isinside(Vec v, Vec tl, Vec br) {
+	return v.x >= tl.x && v.x <= br.x && v.y >= tl.y && v.y <= br.y;
+}
