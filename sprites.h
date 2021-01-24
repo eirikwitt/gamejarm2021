@@ -87,6 +87,13 @@ public:
     }
 };
 
+class Checkpoint {
+public:
+    enum Animation : std::uint16_t {
+		base = 0
+	};
+};
+
 class Dude {
 public:
     enum Animation : std::uint16_t {
@@ -107,5 +114,6 @@ public:
 
 // https://stackoverflow.com/a/19591902
 extern "C" {
+extern const Checkpoint checkpoint;
 extern const Dude dude;
 }
