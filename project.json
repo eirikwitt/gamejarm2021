@@ -404,6 +404,12 @@
 		},
 		"\\game.h": {
 			"sdcard": false
+		},
+		"\\trail.c": {
+			"sdcard": false
+		},
+		"\\trail.h": {
+			"sdcard": false
 		}
 	},
 	"ideVersion": 10000,
