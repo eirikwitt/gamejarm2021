@@ -15,7 +15,7 @@ extern "C" {
 #define START_Y 5640
 
 enum {
-	SUBPIXELS = 1<<16
+	SUBPIXELS = 1<<16,
 };
 
 typedef struct Ghost Ghost;
@@ -29,7 +29,10 @@ typedef struct {
 	EntityState player;
 	Trail trail;
 	Sprite psprite;
-	Vec playersize
+	Vec playersize;
+	Vec acc;
+	Vec impulse;
+	Vec btnimpulse;
 	bool grounded;
 	int health;
 	Ghost *ghosts;
@@ -239,10 +242,21 @@ void game_tickghosts(Game *self, int delta) {
 		)) self->health -= ghost_getdamage(ghost);
 
 		/* draw */
-		//TODO
+		draw_ghost(self, pos);
 
 		ghost = ghost->next;
 	}
+}
+
+void game_
+
+void game_tick(Game *self, int delta) {
+	Vec acc = vec_zero, impulse = vec_zero;
+
+	if (PB::rightBtn()) impulse += self->btnimpulse.x;
+	if (PB::leftBtn()) impulse -= self->btnimpulse.x;
+	if (PB::aBtn() && !self->player.vel.y) impulse = self->impulse.y;
+	
 }
 
 int main(){
